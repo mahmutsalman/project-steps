@@ -53,6 +53,11 @@ function App() {
     )
     console.log('Updated projects:', updatedProjects)
     setProjects(updatedProjects)
+    
+    // Update selectedProject if it's the one being updated
+    if (selectedProject && selectedProject.id === updatedProject.id) {
+      setSelectedProject(updatedProject)
+    }
     console.log('Projects state updated')
   }
 
@@ -95,6 +100,7 @@ function App() {
           onBack={handleBackToProjects}
           onUpdateSteps={handleUpdateSteps}
           allSteps={steps}
+          onUpdateProject={handleUpdateProject}
         />
       )}
     </div>

@@ -124,3 +124,16 @@ export const updateStep = async (step) => {
     throw error
   }
 }
+
+export const updateProjectCurrentStep = async (projectId, stepId) => {
+  try {
+    console.log('Calling update_project_current_step with:', { projectId: projectId, stepId: stepId })
+    await invoke('update_project_current_step', { 
+      projectId: projectId, 
+      stepId: stepId 
+    })
+  } catch (error) {
+    console.error('Error updating project current step:', error)
+    throw error
+  }
+}

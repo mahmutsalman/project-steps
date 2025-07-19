@@ -38,7 +38,8 @@ const ProjectList = ({ projects, onProjectClick, onAddProject, onUpdateProject, 
       description: '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      gradient: gradients[projects.length % gradients.length]
+      gradient: gradients[projects.length % gradients.length],
+      currentStepId: null
     }
     console.log('Creating project:', newProject)
     
@@ -123,9 +124,12 @@ const ProjectList = ({ projects, onProjectClick, onAddProject, onUpdateProject, 
             key={project.id}
             onClick={() => onProjectClick(project)}
             onContextMenu={(e) => handleRightClick(e, project)}
-            className={`bg-gradient-to-r ${project.gradient} p-8 rounded-3xl cursor-pointer transform transition-transform hover:scale-105 shadow-lg`}
+            className={`bg-gradient-to-r ${project.gradient} p-8 rounded-3xl cursor-pointer transform transition-transform hover:scale-105 shadow-lg relative`}
           >
             <h2 className="text-xl font-semibold text-white">{project.name}</h2>
+            {project.currentStepId && (
+              <div className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+            )}
           </div>
         ))}
         

@@ -10,6 +10,7 @@ pub struct Project {
     pub created_at: String,
     pub updated_at: String,
     pub gradient: String,
+    pub current_step_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,7 +48,7 @@ impl Database {
         if is_new_db {
             println!("Creating new database at: {}", db_path.display());
             Self::create_initial_schema(&conn)?;
-            Self::set_schema_version(&conn, 1)?;
+            Self::set_schema_version(&conn, 2)?;
         } else {
             println!("Using existing database at: {}", db_path.display());
             Self::apply_migrations(&conn, current_version)?;
@@ -81,7 +82,8 @@ impl Database {
                 description TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
-                gradient TEXT NOT NULL
+                gradient TEXT NOT NULL,
+                current_step_id TEXT
             )",
             [],
         )?;
@@ -106,16 +108,15 @@ impl Database {
     }
     
     fn apply_migrations(conn: &Connection, current_version: i32) -> Result<()> {
-        let latest_version = 1; // Update this when adding new migrations
+        let latest_version = 2; // Update this when adding new migrations
         
         if current_version < latest_version {
             println!("Applying database migrations from version {} to {}", current_version, latest_version);
             
-            // Example migration structure for future updates:
-            // if current_version < 2 {
-            //     conn.execute("ALTER TABLE projects ADD COLUMN new_field TEXT", [])?;
-            //     Self::set_schema_version(conn, 2)?;
-            // }
+            if current_version < 2 {
+                conn.execute("ALTER TABLE projects ADD COLUMN current_step_id TEXT", [])?;
+                Self::set_schema_version(conn, 2)?;
+            }
             
             println!("Database migrations completed");
         } else {
@@ -127,7 +128,7 @@ impl Database {
 
     pub fn get_all_projects(&self) -> Result<Vec<Project>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, name, description, created_at, updated_at, gradient FROM projects ORDER BY created_at DESC"
+            "SELECT id, name, description, created_at, updated_at, gradient, current_step_id FROM projects ORDER BY created_at DESC"
         )?;
         
         let projects = stmt.query_map([], |row| {
@@ -138,6 +139,7 @@ impl Database {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 gradient: row.get(5)?,
+                current_step_id: row.get(6)?,
             })
         })?;
 
@@ -145,17 +147,19 @@ impl Database {
     }
 
     pub fn create_project(&self, project: &Project) -> Result<()> {
+        let current_step_id = project.current_step_id.as_deref().unwrap_or("");
         self.conn.execute(
-            "INSERT INTO projects (id, name, description, created_at, updated_at, gradient) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            [&project.id, &project.name, &project.description, &project.created_at, &project.updated_at, &project.gradient],
+            "INSERT INTO projects (id, name, description, created_at, updated_at, gradient, current_step_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            [&project.id, &project.name, &project.description, &project.created_at, &project.updated_at, &project.gradient, current_step_id],
         )?;
         Ok(())
     }
 
     pub fn update_project(&self, project: &Project) -> Result<()> {
+        let current_step_id = project.current_step_id.as_deref().unwrap_or("");
         self.conn.execute(
-            "UPDATE projects SET name = ?1, description = ?2, updated_at = ?3, gradient = ?4 WHERE id = ?5",
-            [&project.name, &project.description, &project.updated_at, &project.gradient, &project.id],
+            "UPDATE projects SET name = ?1, description = ?2, updated_at = ?3, gradient = ?4, current_step_id = ?5 WHERE id = ?6",
+            [&project.name, &project.description, &project.updated_at, &project.gradient, current_step_id, &project.id],
         )?;
         Ok(())
     }
@@ -171,6 +175,14 @@ impl Database {
         self.conn.execute(
             "DELETE FROM projects WHERE id = ?1",
             [project_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_project_current_step(&self, project_id: &str, step_id: Option<&str>) -> Result<()> {
+        self.conn.execute(
+            "UPDATE projects SET current_step_id = ?1 WHERE id = ?2",
+            [step_id.unwrap_or(""), project_id],
         )?;
         Ok(())
     }

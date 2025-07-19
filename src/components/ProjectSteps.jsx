@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import StepModal from './StepModal'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
-import { createStep, updateStep } from '../utils/storage'
+import { createStep, updateStep, updateProjectCurrentStep } from '../utils/storage'
 
-const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps }) => {
+const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdateProject }) => {
   const [selectedStep, setSelectedStep] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [localSteps, setLocalSteps] = useState(steps)
@@ -30,9 +30,19 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps }) => {
     onUpdateSteps([...otherSteps, ...updatedSteps])
   }
 
-  const handleStepClick = (step) => {
-    setSelectedStep(step)
-    setShowModal(true)
+  const handleStepClick = async (step, event) => {
+    if (event.metaKey || event.ctrlKey) {
+      // Cmd+click or Ctrl+click to toggle highlight
+      event.preventDefault()
+      event.stopPropagation()
+      const newCurrentStepId = project.currentStepId === step.id ? null : step.id
+      await updateProjectCurrentStep(project.id, newCurrentStepId)
+      onUpdateProject({ ...project, currentStepId: newCurrentStepId })
+    } else {
+      // Regular click to open modal
+      setSelectedStep(step)
+      setShowModal(true)
+    }
   }
 
   const handleAddStep = async () => {
@@ -98,13 +108,17 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps }) => {
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      onClick={() => handleStepClick(step)}
-                      className={`bg-cyan-500 text-white p-6 rounded-2xl cursor-pointer transform transition-all ${
+                      onClick={(e) => handleStepClick(step, e)}
+                      className={`${
+                        project.currentStepId === step.id 
+                          ? 'bg-red-500' 
+                          : 'bg-cyan-500'
+                      } text-white p-6 rounded-2xl cursor-pointer transform transition-all ${
                         snapshot.isDragging ? 'rotate-2 scale-105' : 'hover:scale-102'
                       } shadow-lg`}
                     >
                       <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                      <p className="text-cyan-100">{step.description}</p>
+                      <p className={project.currentStepId === step.id ? "text-red-100" : "text-cyan-100"}>{step.description}</p>
                     </div>
                   )}
                 </Draggable>

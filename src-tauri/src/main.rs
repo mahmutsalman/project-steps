@@ -64,6 +64,12 @@ fn update_steps_batch(steps: Vec<Step>, state: State<AppState>) -> Result<(), St
     db.update_steps_batch(&steps).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn update_project_current_step(projectId: String, stepId: Option<String>, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.update_project_current_step(&projectId, stepId.as_deref()).map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -96,7 +102,8 @@ fn main() {
             get_steps_by_project,
             create_step,
             update_step,
-            update_steps_batch
+            update_steps_batch,
+            update_project_current_step
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
