@@ -12,6 +12,18 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     setLocalSteps(steps)
   }, [steps])
 
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'n') {
+        event.preventDefault()
+        handleAddStep()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [localSteps])
+
   const handleDragEnd = (result) => {
     if (!result.destination) return
 

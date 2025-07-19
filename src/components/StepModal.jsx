@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const StepModal = ({ step, onClose, onSave }) => {
   const [title, setTitle] = useState(step.title)
@@ -12,6 +12,24 @@ const StepModal = ({ step, onClose, onSave }) => {
       updatedAt: new Date().toISOString()
     })
   }
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'w') {
+        event.preventDefault()
+        handleSave()
+        onClose()
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault()
+        handleSave()
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [title, description])
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
