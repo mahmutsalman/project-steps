@@ -80,12 +80,12 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps }) => {
     <div className="container mx-auto p-8">
       <button
         onClick={onBack}
-        className="mb-6 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+        className="mb-6 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
       >
         ← Back to Projects
       </button>
       
-      <h1 className="text-3xl font-bold mb-8">{project.name} - Steps</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">{project.name} - Steps</h1>
       
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="steps">

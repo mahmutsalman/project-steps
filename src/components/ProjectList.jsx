@@ -115,7 +115,7 @@ const ProjectList = ({ projects, onProjectClick, onAddProject, onUpdateProject, 
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">All Projects</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">All Projects</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map((project) => (
@@ -134,9 +134,9 @@ const ProjectList = ({ projects, onProjectClick, onAddProject, onUpdateProject, 
             console.log('Plus icon clicked!')
             setShowCreateModal(true)
           }}
-          className="bg-white border-2 border-dashed border-gray-300 p-8 rounded-3xl cursor-pointer transform transition-transform hover:scale-105 flex items-center justify-center"
+          className="bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 p-8 rounded-3xl cursor-pointer transform transition-transform hover:scale-105 flex items-center justify-center"
         >
-          <span className="text-4xl text-gray-400">+</span>
+          <span className="text-4xl text-gray-400 dark:text-gray-500">+</span>
         </div>
       </div>
       

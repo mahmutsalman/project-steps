@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ProjectList from './components/ProjectList'
 import ProjectSteps from './components/ProjectSteps'
+import DarkModeToggle from './components/DarkModeToggle'
 import { loadProjects, saveProjects, loadSteps, saveSteps } from './utils/storage'
 
 function App() {
@@ -77,7 +78,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ background: 'repeating-linear-gradient(0deg, #f9fafb, #f9fafb 20px, #f3f4f6 20px, #f3f4f6 21px)' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <DarkModeToggle />
       {currentView === 'projects' ? (
         <ProjectList 
           projects={projects} 
