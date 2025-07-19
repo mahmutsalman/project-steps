@@ -1,7 +1,7 @@
 {
   "productName": "ProjectSteps",
   "version": "0.2.0",
-  "identifier": "com.projectsteps.app",
+  "identifier": "com.projectsteps.main",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
