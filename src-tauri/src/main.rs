@@ -65,9 +65,9 @@ fn update_steps_batch(steps: Vec<Step>, state: State<AppState>) -> Result<(), St
 }
 
 #[tauri::command]
-fn update_project_current_step(projectId: String, stepId: Option<String>, state: State<AppState>) -> Result<(), String> {
+fn update_project_current_step(project_id: String, step_id: Option<String>, state: State<AppState>) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db.update_project_current_step(&projectId, stepId.as_deref()).map_err(|e| e.to_string())
+    db.update_project_current_step(&project_id, step_id.as_deref()).map_err(|e| e.to_string())
 }
 
 fn main() {
