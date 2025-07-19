@@ -10,6 +10,7 @@ pub struct Project {
     pub created_at: String,
     pub updated_at: String,
     pub gradient: String,
+    #[serde(rename = "currentStepId")]
     pub current_step_id: Option<String>,
 }
 
