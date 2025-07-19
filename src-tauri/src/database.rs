@@ -1,0 +1,214 @@
+use rusqlite::{Connection, Result};
+use serde::{Deserialize, Serialize};
+use std::path::Path;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Project {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub gradient: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Step {
+    pub id: String,
+    pub project_id: String,
+    pub title: String,
+    pub description: String,
+    pub order_index: i32,
+    pub completed: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub struct Database {
+    conn: Connection,
+}
+
+impl Database {
+    pub fn new(db_path: &Path) -> Result<Self> {
+        let conn = Connection::open(db_path)?;
+        
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                gradient TEXT NOT NULL
+            )",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS steps (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                order_index INTEGER NOT NULL,
+                completed INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+            )",
+            [],
+        )?;
+
+        Ok(Database { conn })
+    }
+
+    pub fn get_all_projects(&self) -> Result<Vec<Project>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, name, description, created_at, updated_at, gradient FROM projects ORDER BY created_at DESC"
+        )?;
+        
+        let projects = stmt.query_map([], |row| {
+            Ok(Project {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+                gradient: row.get(5)?,
+            })
+        })?;
+
+        projects.collect()
+    }
+
+    pub fn create_project(&self, project: &Project) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO projects (id, name, description, created_at, updated_at, gradient) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            [&project.id, &project.name, &project.description, &project.created_at, &project.updated_at, &project.gradient],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_project(&self, project: &Project) -> Result<()> {
+        self.conn.execute(
+            "UPDATE projects SET name = ?1, description = ?2, updated_at = ?3, gradient = ?4 WHERE id = ?5",
+            [&project.name, &project.description, &project.updated_at, &project.gradient, &project.id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_project(&self, project_id: &str) -> Result<()> {
+        // Delete all steps for this project first
+        self.conn.execute(
+            "DELETE FROM steps WHERE project_id = ?1",
+            [project_id],
+        )?;
+        
+        // Then delete the project
+        self.conn.execute(
+            "DELETE FROM projects WHERE id = ?1",
+            [project_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_steps_by_project(&self, project_id: &str) -> Result<Vec<Step>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, project_id, title, description, order_index, completed, created_at, updated_at 
+             FROM steps WHERE project_id = ?1 ORDER BY order_index"
+        )?;
+        
+        let steps = stmt.query_map([project_id], |row| {
+            Ok(Step {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                title: row.get(2)?,
+                description: row.get(3)?,
+                order_index: row.get(4)?,
+                completed: row.get::<_, i32>(5)? != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })?;
+
+        steps.collect()
+    }
+
+    pub fn get_all_steps(&self) -> Result<Vec<Step>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, project_id, title, description, order_index, completed, created_at, updated_at 
+             FROM steps ORDER BY project_id, order_index"
+        )?;
+        
+        let steps = stmt.query_map([], |row| {
+            Ok(Step {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                title: row.get(2)?,
+                description: row.get(3)?,
+                order_index: row.get(4)?,
+                completed: row.get::<_, i32>(5)? != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })?;
+
+        steps.collect()
+    }
+
+    pub fn create_step(&self, step: &Step) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO steps (id, project_id, title, description, order_index, completed, created_at, updated_at) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            [
+                &step.id, 
+                &step.project_id, 
+                &step.title, 
+                &step.description, 
+                &step.order_index.to_string(),
+                &(if step.completed { "1" } else { "0" }).to_string(),
+                &step.created_at, 
+                &step.updated_at
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_step(&self, step: &Step) -> Result<()> {
+        self.conn.execute(
+            "UPDATE steps SET title = ?1, description = ?2, order_index = ?3, completed = ?4, updated_at = ?5 
+             WHERE id = ?6",
+            [
+                &step.title,
+                &step.description,
+                &step.order_index.to_string(),
+                &(if step.completed { "1" } else { "0" }).to_string(),
+                &step.updated_at,
+                &step.id,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_steps_batch(&self, steps: &[Step]) -> Result<()> {
+        let tx = self.conn.unchecked_transaction()?;
+        
+        for step in steps {
+            tx.execute(
+                "UPDATE steps SET title = ?1, description = ?2, order_index = ?3, completed = ?4, updated_at = ?5 
+                 WHERE id = ?6",
+                [
+                    &step.title,
+                    &step.description,
+                    &step.order_index.to_string(),
+                    &(if step.completed { "1" } else { "0" }).to_string(),
+                    &step.updated_at,
+                    &step.id,
+                ],
+            )?;
+        }
+        
+        tx.commit()?;
+        Ok(())
+    }
+}

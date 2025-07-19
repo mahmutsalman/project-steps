@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+target/
+
+# Build outputs
+dist/
+*.app
+*.dmg
+*.deb
+*.rpm
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local resources
+localResources/
+
+# Database
+*.db
+
+# Tauri specific
+src-tauri/target/
