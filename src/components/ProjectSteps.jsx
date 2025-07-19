@@ -98,6 +98,129 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     }
   }
 
+  const handleSwipeRight = async (step) => {
+    const updatedStep = { ...step, completed: true }
+    await handleUpdateStep(updatedStep)
+  }
+
+  const handleSwipeLeft = async (step) => {
+    const updatedStep = { ...step, completed: false }
+    await handleUpdateStep(updatedStep)
+  }
+
+  const StepItem = ({ step, provided, snapshot, index }) => {
+    const [startX, setStartX] = useState(null)
+    const [currentX, setCurrentX] = useState(null)
+    const [isDragging, setIsDragging] = useState(false)
+    
+    const handleMouseDown = (e) => {
+      e.stopPropagation()
+      setStartX(e.clientX)
+      setIsDragging(false)
+    }
+    
+    const handleMouseMove = (e) => {
+      if (startX !== null) {
+        e.stopPropagation()
+        setCurrentX(e.clientX)
+        const distance = Math.abs(e.clientX - startX)
+        if (distance > 10) {
+          setIsDragging(true)
+        }
+      }
+    }
+    
+    const handleMouseUp = (e) => {
+      e.stopPropagation()
+      if (startX !== null) {
+        const endX = e.clientX
+        const distance = endX - startX
+        const threshold = 50 // Minimum distance for a swipe
+        
+        if (Math.abs(distance) > threshold) {
+          // It's a swipe
+          if (distance > 0) {
+            handleSwipeRight(step)
+          } else {
+            handleSwipeLeft(step)
+          }
+        } else if (!isDragging) {
+          // It's a click
+          handleStepClick(step, e)
+        }
+      }
+      
+      // Reset state
+      setStartX(null)
+      setCurrentX(null)
+      setIsDragging(false)
+    }
+    
+    const handleMouseLeave = () => {
+      // Reset state if mouse leaves the element
+      setStartX(null)
+      setCurrentX(null)
+      setIsDragging(false)
+    }
+    
+    // Calculate visual offset for swipe feedback
+    const offset = startX !== null && currentX !== null ? currentX - startX : 0
+    const opacity = startX !== null && currentX !== null ? 1 - Math.abs(offset) / 200 : 1
+
+    // Create a wrapper div for swipe functionality
+    return (
+      <div
+        ref={provided.innerRef}
+        {...provided.draggableProps}
+        style={{
+          ...provided.draggableProps.style,
+          transform: snapshot.isDragging 
+            ? provided.draggableProps.style?.transform 
+            : `translateX(${offset}px)`,
+          opacity: opacity,
+          transition: startX === null ? 'all 0.3s ease' : 'none'
+        }}
+      >
+        <div
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          className={`${
+            step.completed
+              ? 'bg-green-500'
+              : project.currentStepId === step.id 
+                ? 'bg-red-500' 
+                : 'bg-cyan-500'
+          } text-white p-6 rounded-2xl cursor-pointer transform transition-all ${
+            snapshot.isDragging ? 'rotate-2 scale-105' : 'hover:scale-102'
+          } shadow-lg relative overflow-hidden select-none`}
+        >
+          <div {...provided.dragHandleProps} className="absolute top-2 left-2 cursor-move">
+            <svg className="w-6 h-6 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            </svg>
+          </div>
+          <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
+          <p className={
+            step.completed 
+              ? "text-green-100" 
+              : project.currentStepId === step.id 
+                ? "text-red-100" 
+                : "text-cyan-100"
+          }>{step.description}</p>
+          {step.completed && (
+            <div className="absolute top-2 right-2">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto p-8">
       <button
@@ -116,22 +239,12 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
               {localSteps.sort((a, b) => a.order - b.order).map((step, index) => (
                 <Draggable key={step.id} draggableId={step.id} index={index}>
                   {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      onClick={(e) => handleStepClick(step, e)}
-                      className={`${
-                        project.currentStepId === step.id 
-                          ? 'bg-red-500' 
-                          : 'bg-cyan-500'
-                      } text-white p-6 rounded-2xl cursor-pointer transform transition-all ${
-                        snapshot.isDragging ? 'rotate-2 scale-105' : 'hover:scale-102'
-                      } shadow-lg`}
-                    >
-                      <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                      <p className={project.currentStepId === step.id ? "text-red-100" : "text-cyan-100"}>{step.description}</p>
-                    </div>
+                    <StepItem 
+                      step={step} 
+                      provided={provided} 
+                      snapshot={snapshot} 
+                      index={index} 
+                    />
                   )}
                 </Draggable>
               ))}
