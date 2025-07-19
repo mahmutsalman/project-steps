@@ -68,10 +68,17 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let app_dir = app.path().app_data_dir().expect("Failed to get app data dir");
-            std::fs::create_dir_all(&app_dir).expect("Failed to create app data dir");
+            let db_path = if cfg!(debug_assertions) {
+                // Development: use specific project folder path
+                std::path::PathBuf::from("/Users/mahmutsalman/Documents/MyCodingProjects/Projects/Efficinecy apps/ProjectSteps/local.db")
+            } else {
+                // Production: use Application Support
+                let app_dir = app.path().app_data_dir().expect("Failed to get app data dir");
+                std::fs::create_dir_all(&app_dir).expect("Failed to create app data dir");
+                app_dir.join("projectsteps.db")
+            };
             
-            let db_path = app_dir.join("localDB.db");
+            println!("Database path: {}", db_path.display());
             let database = Database::new(&db_path).expect("Failed to initialize database");
             
             app.manage(AppState {

@@ -30,10 +30,52 @@ pub struct Database {
 
 impl Database {
     pub fn new(db_path: &Path) -> Result<Self> {
+        let is_new_db = !db_path.exists();
         let conn = Connection::open(db_path)?;
         
+        // Create schema version table first
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS projects (
+            "CREATE TABLE IF NOT EXISTS schema_version (
+                version INTEGER PRIMARY KEY
+            )",
+            [],
+        )?;
+        
+        let current_version = Self::get_schema_version(&conn)?;
+        println!("Database version: {}", current_version);
+        
+        if is_new_db {
+            println!("Creating new database at: {}", db_path.display());
+            Self::create_initial_schema(&conn)?;
+            Self::set_schema_version(&conn, 1)?;
+        } else {
+            println!("Using existing database at: {}", db_path.display());
+            Self::apply_migrations(&conn, current_version)?;
+        }
+
+        Ok(Database { conn })
+    }
+    
+    fn get_schema_version(conn: &Connection) -> Result<i32> {
+        let version: i32 = conn.query_row(
+            "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
+            [],
+            |row| row.get(0)
+        ).unwrap_or(0);
+        Ok(version)
+    }
+    
+    fn set_schema_version(conn: &Connection, version: i32) -> Result<()> {
+        conn.execute(
+            "INSERT OR REPLACE INTO schema_version (version) VALUES (?1)",
+            [version],
+        )?;
+        Ok(())
+    }
+    
+    fn create_initial_schema(conn: &Connection) -> Result<()> {
+        conn.execute(
+            "CREATE TABLE projects (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 description TEXT,
@@ -45,7 +87,7 @@ impl Database {
         )?;
 
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS steps (
+            "CREATE TABLE steps (
                 id TEXT PRIMARY KEY,
                 project_id TEXT NOT NULL,
                 title TEXT NOT NULL,
@@ -58,8 +100,29 @@ impl Database {
             )",
             [],
         )?;
-
-        Ok(Database { conn })
+        
+        println!("Initial database schema created successfully");
+        Ok(())
+    }
+    
+    fn apply_migrations(conn: &Connection, current_version: i32) -> Result<()> {
+        let latest_version = 1; // Update this when adding new migrations
+        
+        if current_version < latest_version {
+            println!("Applying database migrations from version {} to {}", current_version, latest_version);
+            
+            // Example migration structure for future updates:
+            // if current_version < 2 {
+            //     conn.execute("ALTER TABLE projects ADD COLUMN new_field TEXT", [])?;
+            //     Self::set_schema_version(conn, 2)?;
+            // }
+            
+            println!("Database migrations completed");
+        } else {
+            println!("Database is up to date (version {})", current_version);
+        }
+        
+        Ok(())
     }
 
     pub fn get_all_projects(&self) -> Result<Vec<Project>> {
