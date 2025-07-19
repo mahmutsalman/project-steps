@@ -287,4 +287,12 @@ impl Database {
         tx.commit()?;
         Ok(())
     }
+
+    pub fn delete_step(&self, step_id: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM steps WHERE id = ?1",
+            [step_id],
+        )?;
+        Ok(())
+    }
 }

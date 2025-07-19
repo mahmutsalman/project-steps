@@ -137,3 +137,14 @@ export const updateProjectCurrentStep = async (projectId, stepId) => {
     throw error
   }
 }
+
+export const deleteStep = async (stepId) => {
+  try {
+    console.log('Invoking delete_step Tauri command with ID:', stepId)
+    await invoke('delete_step', { step_id: stepId })
+    console.log('Step deleted successfully via Tauri')
+  } catch (error) {
+    console.error('Error deleting step:', error)
+    throw error
+  }
+}

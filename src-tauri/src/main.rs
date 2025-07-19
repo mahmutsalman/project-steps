@@ -70,6 +70,12 @@ fn update_project_current_step(project_id: String, step_id: Option<String>, stat
     db.update_project_current_step(&project_id, step_id.as_deref()).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn delete_step(step_id: String, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.delete_step(&step_id).map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -103,7 +109,8 @@ fn main() {
             create_step,
             update_step,
             update_steps_batch,
-            update_project_current_step
+            update_project_current_step,
+            delete_step
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

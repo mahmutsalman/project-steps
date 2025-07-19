@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import StepModal from './StepModal'
+import ContextMenu from './ContextMenu'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
-import { createStep, updateStep, updateProjectCurrentStep } from '../utils/storage'
+import { createStep, updateStep, updateProjectCurrentStep, deleteStep } from '../utils/storage'
+import { undoRedoSystem, DeleteStepCommand } from '../utils/undoRedoSystem'
 
 const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdateProject }) => {
   const [selectedStep, setSelectedStep] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [localSteps, setLocalSteps] = useState(steps)
+  const [contextMenu, setContextMenu] = useState(null)
 
   useEffect(() => {
     setLocalSteps(steps)
@@ -17,6 +20,9 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
       if ((event.metaKey || event.ctrlKey) && event.key === 'n') {
         event.preventDefault()
         handleAddStep()
+      } else if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
+        event.preventDefault()
+        handleUndo()
       }
     }
 
@@ -95,6 +101,40 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     } catch (error) {
       console.error('Failed to update step:', error)
       alert('Failed to update step')
+    }
+  }
+
+  const handleDeleteStep = async (step) => {
+    const deleteCommand = new DeleteStepCommand(
+      step,
+      project.id,
+      deleteStep,
+      createStep
+    )
+    
+    try {
+      await undoRedoSystem.executeCommand(deleteCommand)
+      
+      const updatedLocalSteps = localSteps.filter(s => s.id !== step.id)
+      setLocalSteps(updatedLocalSteps)
+      
+      const otherSteps = allSteps.filter(s => s.projectId !== project.id)
+      onUpdateSteps([...otherSteps, ...updatedLocalSteps])
+    } catch (error) {
+      console.error('Failed to delete step:', error)
+      alert('Failed to delete step')
+    }
+  }
+
+  const handleUndo = async () => {
+    try {
+      const success = await undoRedoSystem.undo()
+      if (success) {
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Failed to undo:', error)
+      alert('Failed to undo action')
     }
   }
 
@@ -186,6 +226,14 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            setContextMenu({
+              x: e.clientX,
+              y: e.clientY,
+              step: step
+            })
+          }}
           className={`${
             step.completed
               ? 'bg-green-500'
@@ -269,6 +317,21 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
             handleUpdateStep(updatedStep)
             setShowModal(false)
           }}
+        />
+      )}
+      
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: 'Delete Step',
+              onClick: () => handleDeleteStep(contextMenu.step),
+              danger: true
+            }
+          ]}
         />
       )}
     </div>
