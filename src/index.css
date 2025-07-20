@@ -90,3 +90,48 @@
 .ql-picker.ql-expanded .ql-picker-options {
   z-index: 50 !important;
 }
+
+/* Font Size Dropdown Labels */
+.ql-snow .ql-picker.ql-size .ql-picker-label::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item::before {
+  content: 'Large';
+  font-size: 18px;
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value=small]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value=small]::before {
+  content: 'Small';
+  font-size: 12px;
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value=normal]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value=normal]::before {
+  content: 'Normal';
+  font-size: 14px;
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value=huge]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value=huge]::before {
+  content: 'Huge';
+  font-size: 24px;
+}
+
+/* Font Size Editor Styles */
+.ql-snow .ql-editor .ql-size-small {
+  font-size: 0.75em;
+}
+
+.ql-snow .ql-editor .ql-size-normal {
+  font-size: 1em;
+}
+
+.ql-snow .ql-editor .ql-size-huge {
+  font-size: 2em;
+}
+
+/* Set default editor font size to Large */
+.ql-snow .ql-editor {
+  font-size: 18px;
+}
+
+/* Remove custom quill-scrollable styles - let component handle height */

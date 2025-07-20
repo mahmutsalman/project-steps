@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { createImageThumbnail } from '../utils/imageUtils'
 import ThumbnailModal from './ThumbnailModal'
 
-const ImageThumbnails = ({ attachments, onDelete }) => {
+const ImageThumbnails = ({ attachments, onDelete, compact = false }) => {
   const [thumbnails, setThumbnails] = useState({})
   const [selectedImageIndex, setSelectedImageIndex] = useState(null)
 
@@ -26,8 +26,6 @@ const ImageThumbnails = ({ attachments, onDelete }) => {
   }
 
   const handleThumbnailClick = (index) => {
-    console.log('Thumbnail clicked, index:', index)
-    console.log('Setting selectedImageIndex to:', index)
     setSelectedImageIndex(index)
   }
 
@@ -47,10 +45,7 @@ const ImageThumbnails = ({ attachments, onDelete }) => {
   return (
     <>
       <div className="image-thumbnails relative z-20">
-        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Attached Images ({attachments.length})
-        </h4>
-        <div className="flex flex-wrap gap-2">
+        <div className={`flex flex-wrap ${compact ? 'gap-1' : 'gap-2'}`}>
           {attachments.map((attachment, index) => {
             const thumbnail = thumbnails[attachment.id]
             
@@ -59,12 +54,9 @@ const ImageThumbnails = ({ attachments, onDelete }) => {
                 key={attachment.id}
                 className="relative group cursor-pointer z-30"
                 style={{ pointerEvents: 'auto' }}
-                onClick={() => {
-                  console.log('Div clicked for attachment:', attachment.filename, 'index:', index)
-                  handleThumbnailClick(index)
-                }}
+                onClick={() => handleThumbnailClick(index)}
               >
-                <div className="w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 hover:border-cyan-500 transition-colors">
+                <div className={`${compact ? 'w-12 h-12' : 'w-20 h-20'} rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-600 hover:border-cyan-500 transition-colors`}>
                   {thumbnail ? (
                     <img
                       src={thumbnail.dataUrl}

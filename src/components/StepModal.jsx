@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import QuillWithImages from './QuillWithImages'
 import 'react-quill-new/dist/quill.snow.css'
 
-const StepModal = ({ step, onClose, onSave }) => {
+const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
   const [title, setTitle] = useState(step.title)
   const [description, setDescription] = useState(step.description || '')
   const [isDescriptionView, setIsDescriptionView] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const quillRef = useRef(null)
 
-  const modules = {
+  const modules = useMemo(() => ({
     toolbar: [
       [{ 'header': [1, 2, 3, false] }],
+      [{ 'size': ['small', 'normal', false, 'huge'] }],
       ['bold', 'italic', 'underline', 'strike'],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
       ['blockquote', 'code-block'],
@@ -18,7 +20,12 @@ const StepModal = ({ step, onClose, onSave }) => {
       ['link'],
       ['clean']
     ]
-  }
+  }), [])
+
+  const formats = [
+    'header', 'size', 'bold', 'italic', 'underline', 'strike',
+    'list', 'blockquote', 'code-block', 'color', 'background', 'link'
+  ]
 
   const handleSave = () => {
     const plainText = quillRef.current?.getEditor()?.getText() || ''
@@ -31,10 +38,55 @@ const StepModal = ({ step, onClose, onSave }) => {
     })
   }
 
+  const autoSave = () => {
+    const plainText = quillRef.current?.getEditor()?.getText() || ''
+    if (onAutoSave) {
+      onAutoSave({
+        ...step,
+        title,
+        description,
+        plainText: plainText.trim(),
+        updatedAt: new Date().toISOString()
+      })
+    }
+  }
+
+  // Auto-save on content change
+  useEffect(() => {
+    if (title !== step.title || description !== step.description) {
+      const timeoutId = setTimeout(() => {
+        autoSave()
+      }, 2000) // Auto-save after 2 seconds of inactivity
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [title, description])
+
+  // Auto-save before component unmounts
+  useEffect(() => {
+    return () => {
+      if (title !== step.title || description !== step.description) {
+        autoSave()
+      }
+    }
+  }, [])
+
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [])
+
+  // Auto-save on Escape key
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault()
+        if (title !== step.title || description !== step.description) {
+          autoSave()
+        }
         onClose()
       }
       if ((event.metaKey || event.ctrlKey) && event.key === 'w') {
@@ -56,40 +108,56 @@ const StepModal = ({ step, onClose, onSave }) => {
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
-      onWheel={(e) => e.stopPropagation()}
     >
       <div 
-        className={`bg-white dark:bg-gray-800 rounded-2xl p-8 w-full mx-4 shadow-2xl ${isDescriptionView ? 'max-w-4xl h-[80vh]' : 'max-w-lg'}`}
-        onWheel={(e) => e.stopPropagation()}
+        className={`bg-white dark:bg-gray-800 p-8 shadow-2xl transition-all duration-300 overflow-hidden ${
+          isFullscreen 
+            ? 'fixed inset-4 rounded-lg w-auto h-auto' 
+            : `mx-4 rounded-2xl w-full ${isDescriptionView ? 'max-w-4xl h-[80vh]' : 'max-w-2xl max-h-[80vh]'}`
+        }`}
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             {isDescriptionView ? 'Edit Description' : 'Edit Step'}
           </h2>
-          <button
-            onClick={() => setIsDescriptionView(!isDescriptionView)}
-            className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isDescriptionView ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              )}
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isFullscreen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9l6 6m0-6l-6 6M15 3h6v6M9 21H3v-6" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+                )}
+              </svg>
+            </button>
+            <button
+              onClick={() => setIsDescriptionView(!isDescriptionView)}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isDescriptionView ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
         
         {isDescriptionView ? (
-          <div className="flex flex-col overflow-hidden" style={{ height: 'calc(80vh - 240px)' }}>
+          <div className={`flex flex-col overflow-hidden ${isFullscreen ? 'h-[calc(100vh-240px)]' : 'h-[calc(80vh-240px)]'}`}>
             <div className="flex-1 mb-4 overflow-hidden">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
               </label>
               <div 
-                className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-auto" 
-                style={{ height: 'calc(100% - 30px)', maxHeight: 'calc(80vh - 300px)' }}
-                onWheel={(e) => e.stopPropagation()}
+                className="border border-gray-300 dark:border-gray-600 rounded-lg" 
+                style={{ minHeight: '400px' }}
               >
                 <QuillWithImages
                   ref={quillRef}
@@ -98,15 +166,18 @@ const StepModal = ({ step, onClose, onSave }) => {
                   contentId={step.id}
                   contentTypeEnum="step"
                   modules={modules}
+                  formats={formats}
                   placeholder="Detailed text about the current steps..."
-                  style={{ height: '100%' }}
+                  style={{ 
+                    minHeight: '400px'
+                  }}
                 />
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div>
+          <div className={`flex flex-col ${isFullscreen ? 'h-[calc(100vh-200px)]' : 'h-[calc(80vh-250px)]'}`}>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Step Title
               </label>
@@ -118,21 +189,26 @@ const StepModal = ({ step, onClose, onSave }) => {
               />
             </div>
             
-            <div>
+            <div className="flex-1 flex flex-col min-h-0">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
               </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                <QuillWithImages
-                  ref={quillRef}
-                  value={description}
-                  onChange={setDescription}
-                  contentId={step.id}
-                  contentTypeEnum="step"
-                  modules={modules}
-                  placeholder="Detailed text about the current steps..."
-                  className="h-32"
-                />
+              <div className="flex-1 min-h-0 flex flex-col">
+                <div className="border border-gray-300 dark:border-gray-600 rounded-lg">
+                  <QuillWithImages
+                    ref={quillRef}
+                    value={description}
+                    onChange={setDescription}
+                    contentId={step.id}
+                    contentTypeEnum="step"
+                    modules={modules}
+                    formats={formats}
+                    placeholder="Detailed text about the current steps..."
+                    style={{ 
+                      minHeight: '300px'
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>

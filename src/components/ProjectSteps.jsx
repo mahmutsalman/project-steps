@@ -218,6 +218,23 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     }
   }
 
+  const handleAutoSaveImportantNote = async (updatedNote) => {
+    try {
+      if (importantNote) {
+        // Update existing note
+        await updateNote(updatedNote)
+      } else {
+        // Create new note and set as important
+        await createNote(updatedNote)
+        await setImportantNote(project.id, updatedNote.id)
+      }
+      setImportantNoteState(updatedNote)
+      // Don't close modal for auto-save
+    } catch (error) {
+      console.error('Failed to auto-save important note:', error)
+    }
+  }
+
   const handleSwipeRight = async (step) => {
     const updatedStep = { ...step, completed: true }
     await handleUpdateStep(updatedStep)
@@ -426,6 +443,9 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
             handleUpdateStep(updatedStep)
             setShowModal(false)
           }}
+          onAutoSave={(updatedStep) => {
+            handleUpdateStep(updatedStep)
+          }}
         />
       )}
       
@@ -434,6 +454,7 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
           note={importantNote}
           onClose={() => setShowNoteModal(false)}
           onSave={handleSaveImportantNote}
+          onAutoSave={handleAutoSaveImportantNote}
         />
       )}
       
