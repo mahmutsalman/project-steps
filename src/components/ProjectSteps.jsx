@@ -5,11 +5,12 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { createStep, updateStep, updateProjectCurrentStep, deleteStep } from '../utils/storage'
 import { undoRedoSystem, DeleteStepCommand } from '../utils/undoRedoSystem'
 
-const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdateProject }) => {
+const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdateProject, onNavigateToNotes }) => {
   const [selectedStep, setSelectedStep] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [localSteps, setLocalSteps] = useState(steps)
   const [contextMenu, setContextMenu] = useState(null)
+  const [headerContextMenu, setHeaderContextMenu] = useState(null)
 
   useEffect(() => {
     setLocalSteps(steps)
@@ -278,7 +279,18 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
         ← Back to Projects
       </button>
       
-      <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">{project.name} - Steps</h1>
+      <h1 
+        className="text-3xl font-bold mb-8 text-gray-900 dark:text-white cursor-context-menu"
+        onContextMenu={(e) => {
+          e.preventDefault()
+          setHeaderContextMenu({
+            x: e.clientX,
+            y: e.clientY
+          })
+        }}
+      >
+        {project.name} - Steps
+      </h1>
       
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="steps">
@@ -330,6 +342,20 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
               label: 'Delete Step',
               onClick: () => handleDeleteStep(contextMenu.step),
               danger: true
+            }
+          ]}
+        />
+      )}
+      
+      {headerContextMenu && (
+        <ContextMenu
+          x={headerContextMenu.x}
+          y={headerContextMenu.y}
+          onClose={() => setHeaderContextMenu(null)}
+          items={[
+            {
+              label: 'Notes',
+              onClick: () => onNavigateToNotes()
             }
           ]}
         />

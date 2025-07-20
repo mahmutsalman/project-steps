@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ProjectList from './components/ProjectList'
 import ProjectSteps from './components/ProjectSteps'
+import ProjectNotes from './components/ProjectNotes'
 import DarkModeToggle from './components/DarkModeToggle'
 import { loadProjects, saveProjects, loadSteps, saveSteps } from './utils/storage'
 
@@ -35,6 +36,14 @@ function App() {
   const handleBackToProjects = () => {
     setCurrentView('projects')
     setSelectedProject(null)
+  }
+
+  const handleNavigateToNotes = () => {
+    setCurrentView('notes')
+  }
+
+  const handleBackToSteps = () => {
+    setCurrentView('steps')
   }
 
   const handleAddProject = async (project) => {
@@ -93,7 +102,7 @@ function App() {
           onUpdateProject={handleUpdateProject}
           onDeleteProject={handleDeleteProject}
         />
-      ) : (
+      ) : currentView === 'steps' ? (
         <ProjectSteps 
           project={selectedProject}
           steps={steps.filter(step => step.projectId === selectedProject?.id)}
@@ -101,6 +110,12 @@ function App() {
           onUpdateSteps={handleUpdateSteps}
           allSteps={steps}
           onUpdateProject={handleUpdateProject}
+          onNavigateToNotes={handleNavigateToNotes}
+        />
+      ) : (
+        <ProjectNotes
+          project={selectedProject}
+          onBack={handleBackToSteps}
         />
       )}
     </div>
