@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import NoteCard from './NoteCard'
 import NoteModal from './NoteModal'
 import ContextMenu from './ContextMenu'
-import { loadNotesByProject, createNote, updateNote, deleteNote } from '../utils/storage'
+import { loadNotesByProject, createNote, updateNote, deleteNote, setImportantNote } from '../utils/storage'
 
 const ProjectNotes = ({ project, onBack }) => {
   const [notes, setNotes] = useState([])
@@ -49,7 +49,8 @@ const ProjectNotes = ({ project, onBack }) => {
       content: '',
       plainText: '',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      isImportant: false
     }
     setSelectedNote(newNote)
     setShowModal(true)
@@ -81,6 +82,17 @@ const ProjectNotes = ({ project, onBack }) => {
     } catch (error) {
       console.error('Failed to delete note:', error)
       alert('Failed to delete note')
+    }
+  }
+
+  const handleSetImportantNote = async (noteId) => {
+    try {
+      await setImportantNote(project.id, noteId)
+      await loadNotes()
+      alert('Note marked as important!')
+    } catch (error) {
+      console.error('Failed to set important note:', error)
+      alert('Failed to set note as important')
     }
   }
 
@@ -153,6 +165,10 @@ const ProjectNotes = ({ project, onBack }) => {
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
           items={[
+            {
+              label: 'Mark as Important',
+              onClick: () => handleSetImportantNote(contextMenu.noteId)
+            },
             {
               label: 'Delete Note',
               onClick: () => handleDeleteNote(contextMenu.noteId),

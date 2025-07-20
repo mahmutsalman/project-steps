@@ -186,3 +186,22 @@ export const deleteNote = async (noteId) => {
     throw error
   }
 }
+
+export const getImportantNote = async (projectId) => {
+  try {
+    const note = await invoke('get_important_note', { projectId: projectId })
+    return note
+  } catch (error) {
+    console.error('Error getting important note:', error)
+    return null
+  }
+}
+
+export const setImportantNote = async (projectId, noteId) => {
+  try {
+    await invoke('set_important_note', { projectId: projectId, noteId: noteId })
+  } catch (error) {
+    console.error('Error setting important note:', error)
+    throw error
+  }
+}

@@ -107,6 +107,20 @@ fn delete_note(noteId: String, state: State<AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
+fn get_important_note(projectId: String, state: State<AppState>) -> Result<Option<Note>, String> {
+    let db = state.db.lock().unwrap();
+    db.get_important_note(&projectId).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+fn set_important_note(projectId: String, noteId: String, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.set_important_note(&projectId, &noteId).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn upload_image(
     image_data: Vec<u8>,
     filename: String,
@@ -233,6 +247,8 @@ fn main() {
             create_note,
             update_note,
             delete_note,
+            get_important_note,
+            set_important_note,
             upload_image,
             get_image_attachments,
             delete_image_attachment,

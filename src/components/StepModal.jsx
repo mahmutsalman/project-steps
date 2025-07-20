@@ -33,6 +33,10 @@ const StepModal = ({ step, onClose, onSave }) => {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+      }
       if ((event.metaKey || event.ctrlKey) && event.key === 'w') {
         event.preventDefault()
         handleSave()
@@ -50,8 +54,14 @@ const StepModal = ({ step, onClose, onSave }) => {
   }, [title, description])
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl p-8 w-full mx-4 shadow-2xl ${isDescriptionView ? 'max-w-4xl h-[80vh]' : 'max-w-lg'}`}>
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+      onWheel={(e) => e.stopPropagation()}
+    >
+      <div 
+        className={`bg-white dark:bg-gray-800 rounded-2xl p-8 w-full mx-4 shadow-2xl ${isDescriptionView ? 'max-w-4xl h-[80vh]' : 'max-w-lg'}`}
+        onWheel={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
             {isDescriptionView ? 'Edit Description' : 'Edit Step'}
@@ -71,12 +81,16 @@ const StepModal = ({ step, onClose, onSave }) => {
         </div>
         
         {isDescriptionView ? (
-          <div className="flex flex-col" style={{ height: 'calc(80vh - 240px)' }}>
-            <div className="flex-1 mb-4">
+          <div className="flex flex-col overflow-hidden" style={{ height: 'calc(80vh - 240px)' }}>
+            <div className="flex-1 mb-4 overflow-hidden">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
               </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden" style={{ height: 'calc(100% - 30px)', maxHeight: 'calc(80vh - 300px)' }}>
+              <div 
+                className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-auto" 
+                style={{ height: 'calc(100% - 30px)', maxHeight: 'calc(80vh - 300px)' }}
+                onWheel={(e) => e.stopPropagation()}
+              >
                 <QuillWithImages
                   ref={quillRef}
                   value={description}

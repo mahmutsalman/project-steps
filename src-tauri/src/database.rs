@@ -41,6 +41,8 @@ pub struct Note {
     pub created_at: String,
     #[serde(rename = "updatedAt")]
     pub updated_at: String,
+    #[serde(rename = "isImportant")]
+    pub is_important: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -82,7 +84,7 @@ impl Database {
         if is_new_db {
             println!("Creating new database at: {}", db_path.display());
             Self::create_initial_schema(&conn)?;
-            Self::set_schema_version(&conn, 5)?;
+            Self::set_schema_version(&conn, 6)?;
         } else {
             println!("Using existing database at: {}", db_path.display());
             Self::apply_migrations(&conn, current_version)?;
@@ -147,6 +149,7 @@ impl Database {
                 plain_text TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
+                is_important INTEGER DEFAULT 0,
                 FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
             )",
             [],
@@ -170,7 +173,7 @@ impl Database {
     }
     
     fn apply_migrations(conn: &Connection, current_version: i32) -> Result<()> {
-        let latest_version = 5; // Update this when adding new migrations
+        let latest_version = 6; // Update this when adding new migrations
         
         if current_version < latest_version {
             println!("Applying database migrations from version {} to {}", current_version, latest_version);
@@ -216,6 +219,11 @@ impl Database {
                     [],
                 )?;
                 Self::set_schema_version(conn, 5)?;
+            }
+            
+            if current_version < 6 {
+                conn.execute("ALTER TABLE notes ADD COLUMN is_important INTEGER DEFAULT 0", [])?;
+                Self::set_schema_version(conn, 6)?;
             }
             
             println!("Database migrations completed");
@@ -403,7 +411,7 @@ impl Database {
     // Notes CRUD operations
     pub fn get_notes_by_project(&self, project_id: &str) -> Result<Vec<Note>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, project_id, title, content, plain_text, created_at, updated_at 
+            "SELECT id, project_id, title, content, plain_text, created_at, updated_at, is_important 
              FROM notes WHERE project_id = ?1 ORDER BY created_at DESC"
         )?;
         
@@ -416,6 +424,7 @@ impl Database {
                 plain_text: row.get(4)?,
                 created_at: row.get(5)?,
                 updated_at: row.get(6)?,
+                is_important: row.get::<_, i32>(7)? != 0,
             })
         })?;
 
@@ -424,9 +433,9 @@ impl Database {
 
     pub fn create_note(&self, note: &Note) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO notes (id, project_id, title, content, plain_text, created_at, updated_at) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            [
+            "INSERT INTO notes (id, project_id, title, content, plain_text, created_at, updated_at, is_important) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            (
                 &note.id,
                 &note.project_id,
                 &note.title,
@@ -434,22 +443,24 @@ impl Database {
                 &note.plain_text,
                 &note.created_at,
                 &note.updated_at,
-            ],
+                note.is_important as i32,
+            ),
         )?;
         Ok(())
     }
 
     pub fn update_note(&self, note: &Note) -> Result<()> {
         self.conn.execute(
-            "UPDATE notes SET title = ?1, content = ?2, plain_text = ?3, updated_at = ?4 
-             WHERE id = ?5",
-            [
+            "UPDATE notes SET title = ?1, content = ?2, plain_text = ?3, updated_at = ?4, is_important = ?5 
+             WHERE id = ?6",
+            (
                 &note.title,
                 &note.content,
                 &note.plain_text,
                 &note.updated_at,
+                note.is_important as i32,
                 &note.id,
-            ],
+            ),
         )?;
         Ok(())
     }
@@ -459,6 +470,44 @@ impl Database {
             "DELETE FROM notes WHERE id = ?1",
             [note_id],
         )?;
+        Ok(())
+    }
+    
+    pub fn get_important_note(&self, project_id: &str) -> Result<Option<Note>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, project_id, title, content, plain_text, created_at, updated_at, is_important 
+             FROM notes WHERE project_id = ?1 AND is_important = 1 LIMIT 1"
+        )?;
+        
+        let mut notes = stmt.query_map([project_id], |row| {
+            Ok(Note {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                title: row.get(2)?,
+                content: row.get(3)?,
+                plain_text: row.get(4)?,
+                created_at: row.get(5)?,
+                updated_at: row.get(6)?,
+                is_important: row.get::<_, i32>(7)? != 0,
+            })
+        })?;
+        
+        notes.next().transpose()
+    }
+    
+    pub fn set_important_note(&self, project_id: &str, note_id: &str) -> Result<()> {
+        // First, unset any existing important note for this project
+        self.conn.execute(
+            "UPDATE notes SET is_important = 0 WHERE project_id = ?1 AND is_important = 1",
+            [project_id],
+        )?;
+        
+        // Then set the new important note
+        self.conn.execute(
+            "UPDATE notes SET is_important = 1 WHERE id = ?1 AND project_id = ?2",
+            [note_id, project_id],
+        )?;
+        
         Ok(())
     }
 
