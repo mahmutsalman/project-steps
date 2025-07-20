@@ -20,6 +20,8 @@ pub struct Step {
     pub project_id: String,
     pub title: String,
     pub description: String,
+    #[serde(rename = "plainText")]
+    pub plain_text: Option<String>,
     pub order_index: i32,
     pub completed: bool,
     pub created_at: String,
@@ -64,7 +66,7 @@ impl Database {
         if is_new_db {
             println!("Creating new database at: {}", db_path.display());
             Self::create_initial_schema(&conn)?;
-            Self::set_schema_version(&conn, 3)?;
+            Self::set_schema_version(&conn, 4)?;
         } else {
             println!("Using existing database at: {}", db_path.display());
             Self::apply_migrations(&conn, current_version)?;
@@ -110,6 +112,7 @@ impl Database {
                 project_id TEXT NOT NULL,
                 title TEXT NOT NULL,
                 description TEXT,
+                plain_text TEXT,
                 order_index INTEGER NOT NULL,
                 completed INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
@@ -138,7 +141,7 @@ impl Database {
     }
     
     fn apply_migrations(conn: &Connection, current_version: i32) -> Result<()> {
-        let latest_version = 3; // Update this when adding new migrations
+        let latest_version = 4; // Update this when adding new migrations
         
         if current_version < latest_version {
             println!("Applying database migrations from version {} to {}", current_version, latest_version);
@@ -163,6 +166,11 @@ impl Database {
                     [],
                 )?;
                 Self::set_schema_version(conn, 3)?;
+            }
+            
+            if current_version < 4 {
+                conn.execute("ALTER TABLE steps ADD COLUMN plain_text TEXT", [])?;
+                Self::set_schema_version(conn, 4)?;
             }
             
             println!("Database migrations completed");
@@ -236,7 +244,7 @@ impl Database {
 
     pub fn get_steps_by_project(&self, project_id: &str) -> Result<Vec<Step>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, project_id, title, description, order_index, completed, created_at, updated_at 
+            "SELECT id, project_id, title, description, plain_text, order_index, completed, created_at, updated_at 
              FROM steps WHERE project_id = ?1 ORDER BY order_index"
         )?;
         
@@ -246,10 +254,11 @@ impl Database {
                 project_id: row.get(1)?,
                 title: row.get(2)?,
                 description: row.get(3)?,
-                order_index: row.get(4)?,
-                completed: row.get::<_, i32>(5)? != 0,
-                created_at: row.get(6)?,
-                updated_at: row.get(7)?,
+                plain_text: row.get(4)?,
+                order_index: row.get(5)?,
+                completed: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?;
 
@@ -258,7 +267,7 @@ impl Database {
 
     pub fn get_all_steps(&self) -> Result<Vec<Step>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, project_id, title, description, order_index, completed, created_at, updated_at 
+            "SELECT id, project_id, title, description, plain_text, order_index, completed, created_at, updated_at 
              FROM steps ORDER BY project_id, order_index"
         )?;
         
@@ -268,10 +277,11 @@ impl Database {
                 project_id: row.get(1)?,
                 title: row.get(2)?,
                 description: row.get(3)?,
-                order_index: row.get(4)?,
-                completed: row.get::<_, i32>(5)? != 0,
-                created_at: row.get(6)?,
-                updated_at: row.get(7)?,
+                plain_text: row.get(4)?,
+                order_index: row.get(5)?,
+                completed: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?;
 
@@ -280,13 +290,14 @@ impl Database {
 
     pub fn create_step(&self, step: &Step) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO steps (id, project_id, title, description, order_index, completed, created_at, updated_at) 
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO steps (id, project_id, title, description, plain_text, order_index, completed, created_at, updated_at) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             [
                 &step.id, 
                 &step.project_id, 
                 &step.title, 
-                &step.description, 
+                &step.description,
+                step.plain_text.as_deref().unwrap_or(""),
                 &step.order_index.to_string(),
                 &(if step.completed { "1" } else { "0" }).to_string(),
                 &step.created_at, 
@@ -298,11 +309,12 @@ impl Database {
 
     pub fn update_step(&self, step: &Step) -> Result<()> {
         self.conn.execute(
-            "UPDATE steps SET title = ?1, description = ?2, order_index = ?3, completed = ?4, updated_at = ?5 
-             WHERE id = ?6",
+            "UPDATE steps SET title = ?1, description = ?2, plain_text = ?3, order_index = ?4, completed = ?5, updated_at = ?6 
+             WHERE id = ?7",
             [
                 &step.title,
                 &step.description,
+                step.plain_text.as_deref().unwrap_or(""),
                 &step.order_index.to_string(),
                 &(if step.completed { "1" } else { "0" }).to_string(),
                 &step.updated_at,
@@ -317,11 +329,12 @@ impl Database {
         
         for step in steps {
             tx.execute(
-                "UPDATE steps SET title = ?1, description = ?2, order_index = ?3, completed = ?4, updated_at = ?5 
-                 WHERE id = ?6",
+                "UPDATE steps SET title = ?1, description = ?2, plain_text = ?3, order_index = ?4, completed = ?5, updated_at = ?6 
+                 WHERE id = ?7",
                 [
                     &step.title,
                     &step.description,
+                    step.plain_text.as_deref().unwrap_or(""),
                     &step.order_index.to_string(),
                     &(if step.completed { "1" } else { "0" }).to_string(),
                     &step.updated_at,

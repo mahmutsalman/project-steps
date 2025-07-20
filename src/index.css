@@ -73,11 +73,20 @@
 .ql-toolbar {
   @apply rounded-t-lg;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* Prevent Quill editor from capturing clicks outside its intended area */
 .ql-editor {
   position: relative;
   z-index: 1;
+}
+
+/* Ensure Quill dropdown menus appear above other elements */
+.ql-picker-options {
+  z-index: 50 !important;
+}
+
+.ql-picker.ql-expanded .ql-picker-options {
+  z-index: 50 !important;
 }
