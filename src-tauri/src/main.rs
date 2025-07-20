@@ -79,7 +79,6 @@ fn delete_step(step_id: String, state: State<AppState>) -> Result<(), String> {
 #[tauri::command]
 #[allow(non_snake_case)]
 fn get_notes_by_project(projectId: String, state: State<AppState>) -> Result<Vec<Note>, String> {
-    println!("get_notes_by_project called with projectId: {}", projectId);
     let db = state.db.lock().unwrap();
     db.get_notes_by_project(&projectId).map_err(|e| e.to_string())
 }
