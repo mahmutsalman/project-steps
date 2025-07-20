@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactQuill from 'react-quill-new'
+import QuillWithImages from './QuillWithImages'
 import 'react-quill-new/dist/quill.snow.css'
 
 const StepModal = ({ step, onClose, onSave }) => {
@@ -77,11 +77,12 @@ const StepModal = ({ step, onClose, onSave }) => {
                 Description
               </label>
               <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden" style={{ height: 'calc(100% - 30px)', maxHeight: 'calc(80vh - 300px)' }}>
-                <ReactQuill
+                <QuillWithImages
                   ref={quillRef}
-                  theme="snow"
                   value={description}
                   onChange={setDescription}
+                  contentId={step.id}
+                  contentTypeEnum="step"
                   modules={modules}
                   placeholder="Detailed text about the current steps..."
                   style={{ height: '100%' }}
@@ -108,11 +109,12 @@ const StepModal = ({ step, onClose, onSave }) => {
                 Description
               </label>
               <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                <ReactQuill
+                <QuillWithImages
                   ref={quillRef}
-                  theme="snow"
                   value={description}
                   onChange={setDescription}
+                  contentId={step.id}
+                  contentTypeEnum="step"
                   modules={modules}
                   placeholder="Detailed text about the current steps..."
                   className="h-32"

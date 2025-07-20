@@ -2,9 +2,13 @@
 
 mod database;
 
-use database::{Database, Project, Step, Note};
+use database::{Database, Project, Step, Note, ImageAttachment};
 use std::sync::Mutex;
+use std::fs;
+use std::path::Path;
 use tauri::{Manager, State};
+use uuid::Uuid;
+use chrono::Utc;
 
 struct AppState {
     db: Mutex<Database>,
@@ -102,6 +106,94 @@ fn delete_note(noteId: String, state: State<AppState>) -> Result<(), String> {
     db.delete_note(&noteId).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn upload_image(
+    image_data: Vec<u8>,
+    filename: String,
+    content_type: String,
+    content_id: String,
+    content_type_enum: String,
+    app: tauri::AppHandle,
+    state: State<AppState>
+) -> Result<ImageAttachment, String> {
+    // Generate unique ID for the image
+    let image_id = Uuid::new_v4().to_string();
+    
+    // Determine attachment folder path
+    let attachment_dir = if cfg!(debug_assertions) {
+        // Development: use project folder
+        std::path::PathBuf::from("/Users/mahmutsalman/Documents/MyCodingProjects/Projects/Efficinecy apps/ProjectSteps/attachmentSources/images")
+    } else {
+        // Production: use Application Support
+        let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+        app_dir.join("attachmentSources").join("images")
+    };
+    
+    // Create directory if it doesn't exist
+    fs::create_dir_all(&attachment_dir).map_err(|e| e.to_string())?;
+    
+    // Generate unique filename with extension
+    let file_extension = Path::new(&filename)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("png");
+    let unique_filename = format!("{}_{}.{}", image_id, filename.replace(".", "_"), file_extension);
+    let file_path = attachment_dir.join(&unique_filename);
+    
+    // Write image data to file
+    fs::write(&file_path, image_data).map_err(|e| e.to_string())?;
+    
+    // Create image attachment record
+    let attachment = ImageAttachment {
+        id: image_id,
+        file_path: file_path.to_string_lossy().to_string(),
+        filename: unique_filename,
+        content_type,
+        content_id,
+        content_type_enum,
+        created_at: Utc::now().to_rfc3339(),
+    };
+    
+    // Save to database
+    let db = state.db.lock().unwrap();
+    db.create_image_attachment(&attachment).map_err(|e| e.to_string())?;
+    
+    Ok(attachment)
+}
+
+#[tauri::command]
+fn get_image_attachments(
+    content_id: String,
+    content_type_enum: String,
+    state: State<AppState>
+) -> Result<Vec<ImageAttachment>, String> {
+    let db = state.db.lock().unwrap();
+    db.get_image_attachments_by_content(&content_id, &content_type_enum)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_image_attachment(
+    attachment_id: String,
+    file_path: String,
+    state: State<AppState>
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    
+    // Delete file
+    if Path::new(&file_path).exists() {
+        fs::remove_file(&file_path).map_err(|e| e.to_string())?;
+    }
+    
+    // Delete from database
+    db.delete_image_attachment(&attachment_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_image_file_data(file_path: String) -> Result<Vec<u8>, String> {
+    fs::read(&file_path).map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -140,7 +232,11 @@ fn main() {
             get_notes_by_project,
             create_note,
             update_note,
-            delete_note
+            delete_note,
+            upload_image,
+            get_image_attachments,
+            delete_image_attachment,
+            get_image_file_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -43,6 +43,22 @@ pub struct Note {
     pub updated_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ImageAttachment {
+    pub id: String,
+    #[serde(rename = "filePath")]
+    pub file_path: String,
+    pub filename: String,
+    #[serde(rename = "contentType")]
+    pub content_type: String,
+    #[serde(rename = "contentId")]
+    pub content_id: String,
+    #[serde(rename = "contentTypeEnum")]
+    pub content_type_enum: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+}
+
 pub struct Database {
     conn: Connection,
 }
@@ -66,7 +82,7 @@ impl Database {
         if is_new_db {
             println!("Creating new database at: {}", db_path.display());
             Self::create_initial_schema(&conn)?;
-            Self::set_schema_version(&conn, 4)?;
+            Self::set_schema_version(&conn, 5)?;
         } else {
             println!("Using existing database at: {}", db_path.display());
             Self::apply_migrations(&conn, current_version)?;
@@ -135,13 +151,26 @@ impl Database {
             )",
             [],
         )?;
+
+        conn.execute(
+            "CREATE TABLE image_attachments (
+                id TEXT PRIMARY KEY,
+                file_path TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                content_type TEXT NOT NULL,
+                content_id TEXT NOT NULL,
+                content_type_enum TEXT NOT NULL CHECK (content_type_enum IN ('step', 'note', 'project_description')),
+                created_at TEXT NOT NULL
+            )",
+            [],
+        )?;
         
         println!("Initial database schema created successfully");
         Ok(())
     }
     
     fn apply_migrations(conn: &Connection, current_version: i32) -> Result<()> {
-        let latest_version = 4; // Update this when adding new migrations
+        let latest_version = 5; // Update this when adding new migrations
         
         if current_version < latest_version {
             println!("Applying database migrations from version {} to {}", current_version, latest_version);
@@ -171,6 +200,22 @@ impl Database {
             if current_version < 4 {
                 conn.execute("ALTER TABLE steps ADD COLUMN plain_text TEXT", [])?;
                 Self::set_schema_version(conn, 4)?;
+            }
+            
+            if current_version < 5 {
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS image_attachments (
+                        id TEXT PRIMARY KEY,
+                        file_path TEXT NOT NULL,
+                        filename TEXT NOT NULL,
+                        content_type TEXT NOT NULL,
+                        content_id TEXT NOT NULL,
+                        content_type_enum TEXT NOT NULL CHECK (content_type_enum IN ('step', 'note', 'project_description')),
+                        created_at TEXT NOT NULL
+                    )",
+                    [],
+                )?;
+                Self::set_schema_version(conn, 5)?;
             }
             
             println!("Database migrations completed");
@@ -413,6 +458,61 @@ impl Database {
         self.conn.execute(
             "DELETE FROM notes WHERE id = ?1",
             [note_id],
+        )?;
+        Ok(())
+    }
+
+    // Image Attachments CRUD operations
+    pub fn get_image_attachments_by_content(&self, content_id: &str, content_type_enum: &str) -> Result<Vec<ImageAttachment>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, file_path, filename, content_type, content_id, content_type_enum, created_at 
+             FROM image_attachments WHERE content_id = ?1 AND content_type_enum = ?2 ORDER BY created_at ASC"
+        )?;
+        
+        let attachments = stmt.query_map([content_id, content_type_enum], |row| {
+            Ok(ImageAttachment {
+                id: row.get(0)?,
+                file_path: row.get(1)?,
+                filename: row.get(2)?,
+                content_type: row.get(3)?,
+                content_id: row.get(4)?,
+                content_type_enum: row.get(5)?,
+                created_at: row.get(6)?,
+            })
+        })?;
+
+        attachments.collect()
+    }
+
+    pub fn create_image_attachment(&self, attachment: &ImageAttachment) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO image_attachments (id, file_path, filename, content_type, content_id, content_type_enum, created_at) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            [
+                &attachment.id,
+                &attachment.file_path,
+                &attachment.filename,
+                &attachment.content_type,
+                &attachment.content_id,
+                &attachment.content_type_enum,
+                &attachment.created_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_image_attachment(&self, attachment_id: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM image_attachments WHERE id = ?1",
+            [attachment_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_image_attachments_by_content(&self, content_id: &str, content_type_enum: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM image_attachments WHERE content_id = ?1 AND content_type_enum = ?2",
+            [content_id, content_type_enum],
         )?;
         Ok(())
     }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import ReactQuill from 'react-quill-new'
+import QuillWithImages from './QuillWithImages'
 import 'react-quill-new/dist/quill.snow.css'
 
 const NoteModal = ({ note, onClose, onSave }) => {
@@ -68,11 +68,12 @@ const NoteModal = ({ note, onClose, onSave }) => {
 
         {/* Editor */}
         <div className="flex-1 overflow-auto p-6">
-          <ReactQuill
+          <QuillWithImages
             ref={quillRef}
-            theme="snow"
             value={content}
             onChange={setContent}
+            contentId={note?.id}
+            contentTypeEnum="note"
             modules={modules}
             placeholder="Start writing your note..."
             className="h-full min-h-[400px]"
