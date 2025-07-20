@@ -14,19 +14,24 @@ const ThumbnailModal = ({ attachments, initialIndex, onClose, onDelete }) => {
     const handleKeyDown = (event) => {
       switch (event.key) {
         case 'Escape':
+          event.preventDefault()
+          event.stopPropagation()
           onClose()
           break
         case 'ArrowLeft':
           event.preventDefault()
+          event.stopPropagation()
           navigatePrevious()
           break
         case 'ArrowRight':
           event.preventDefault()
+          event.stopPropagation()
           navigateNext()
           break
         case 'Delete':
         case 'Backspace':
           event.preventDefault()
+          event.stopPropagation()
           handleDelete()
           break
       }

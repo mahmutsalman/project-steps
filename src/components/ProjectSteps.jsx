@@ -14,6 +14,29 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
   const [headerContextMenu, setHeaderContextMenu] = useState(null)
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [importantNote, setImportantNoteState] = useState(null)
+  const [lastOpenedStepId, setLastOpenedStepId] = useState(null)
+
+  // Functions to manage last opened step in localStorage
+  const getLastOpenedStepId = (projectId) => {
+    try {
+      return localStorage.getItem(`lastOpenedStep_${projectId}`)
+    } catch (error) {
+      console.error('Error reading last opened step from localStorage:', error)
+      return null
+    }
+  }
+
+  const saveLastOpenedStepId = (projectId, stepId) => {
+    try {
+      if (stepId) {
+        localStorage.setItem(`lastOpenedStep_${projectId}`, stepId)
+      } else {
+        localStorage.removeItem(`lastOpenedStep_${projectId}`)
+      }
+    } catch (error) {
+      console.error('Error saving last opened step to localStorage:', error)
+    }
+  }
 
   // Extract preview text (first 2-3 sentences)
   const getPreviewText = (step) => {
@@ -44,6 +67,12 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
   useEffect(() => {
     setLocalSteps(steps)
   }, [steps])
+
+  // Load last opened step from localStorage when project changes
+  useEffect(() => {
+    const savedLastOpenedStepId = getLastOpenedStepId(project.id)
+    setLastOpenedStepId(savedLastOpenedStepId)
+  }, [project.id])
 
   useEffect(() => {
     const loadImportantNote = async () => {
@@ -102,6 +131,9 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
       // Regular click to open modal
       setSelectedStep(step)
       setShowModal(true)
+      // Track this as the last opened step
+      setLastOpenedStepId(step.id)
+      saveLastOpenedStepId(project.id, step.id)
     }
   }
 
@@ -245,7 +277,7 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     await handleUpdateStep(updatedStep)
   }
 
-  const StepItem = ({ step, provided, snapshot, index }) => {
+  const StepItem = ({ step, provided, snapshot, index, isLastOpened }) => {
     const [startX, setStartX] = useState(null)
     const [currentX, setCurrentX] = useState(null)
     const [isDragging, setIsDragging] = useState(false)
@@ -339,14 +371,23 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
                 : 'bg-cyan-500'
           } text-white p-6 rounded-2xl cursor-pointer transform transition-all ${
             snapshot.isDragging ? 'rotate-2 scale-105' : 'hover:scale-102'
-          } shadow-lg relative overflow-hidden select-none`}
+          } shadow-lg relative overflow-hidden select-none ${
+            isLastOpened ? 'ring-8 ring-indigo-500 shadow-indigo-500 shadow-2xl border-4 border-indigo-500' : ''
+          }`}
         >
           <div {...provided.dragHandleProps} className="absolute top-2 left-2 cursor-move">
             <svg className="w-6 h-6 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
             </svg>
           </div>
-          <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
+          <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+            {step.title}
+            {isLastOpened && (
+              <span className="text-xs bg-blue-600 bg-opacity-80 px-2 py-1 rounded-full">
+                Last opened
+              </span>
+            )}
+          </h3>
           <p className={
             step.completed 
               ? "text-green-100" 
@@ -418,6 +459,7 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
                       provided={provided} 
                       snapshot={snapshot} 
                       index={index} 
+                      isLastOpened={step.id === lastOpenedStepId}
                     />
                   )}
                 </Draggable>

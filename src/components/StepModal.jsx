@@ -7,6 +7,7 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
   const [description, setDescription] = useState(step.description || '')
   const [isDescriptionView, setIsDescriptionView] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [hasImages, setHasImages] = useState(false)
   const quillRef = useRef(null)
 
   const modules = useMemo(() => ({
@@ -70,6 +71,22 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
       }
     }
   }, [])
+
+  // Check for image attachments periodically
+  useEffect(() => {
+    const checkImages = () => {
+      if (quillRef.current?.getImageAttachments) {
+        const attachments = quillRef.current.getImageAttachments()
+        setHasImages(attachments && attachments.length > 0)
+      }
+    }
+
+    // Check initially and then periodically
+    const interval = setInterval(checkImages, 1000)
+    checkImages()
+
+    return () => clearInterval(interval)
+  }, [description])
 
   // Disable body scroll when modal is open
   useEffect(() => {
@@ -152,8 +169,16 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
         {isDescriptionView ? (
           <div className={`flex flex-col overflow-hidden ${isFullscreen ? 'h-[calc(100vh-240px)]' : 'h-[calc(80vh-240px)]'}`}>
             <div className="flex-1 mb-4 overflow-hidden">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
+                {hasImages && (
+                  <span className="flex items-center gap-1 text-xs bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-full">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Has images
+                  </span>
+                )}
               </label>
               <div 
                 className="border border-gray-300 dark:border-gray-600 rounded-lg" 
@@ -176,7 +201,7 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
             </div>
           </div>
         ) : (
-          <div className={`flex flex-col ${isFullscreen ? 'h-[calc(100vh-200px)]' : 'h-[calc(80vh-250px)]'}`}>
+          <div className={`overflow-y-auto ${isFullscreen ? 'h-[calc(100vh-200px)]' : 'max-h-[calc(80vh-250px)]'}`}>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Step Title
@@ -189,26 +214,32 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
               />
             </div>
             
-            <div className="flex-1 flex flex-col min-h-0">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="mb-4">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
+                {hasImages && (
+                  <span className="flex items-center gap-1 text-xs bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-full">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Has images
+                  </span>
+                )}
               </label>
-              <div className="flex-1 min-h-0 flex flex-col">
-                <div className="border border-gray-300 dark:border-gray-600 rounded-lg">
-                  <QuillWithImages
-                    ref={quillRef}
-                    value={description}
-                    onChange={setDescription}
-                    contentId={step.id}
-                    contentTypeEnum="step"
-                    modules={modules}
-                    formats={formats}
-                    placeholder="Detailed text about the current steps..."
-                    style={{ 
-                      minHeight: '300px'
-                    }}
-                  />
-                </div>
+              <div className="border border-gray-300 dark:border-gray-600 rounded-lg">
+                <QuillWithImages
+                  ref={quillRef}
+                  value={description}
+                  onChange={setDescription}
+                  contentId={step.id}
+                  contentTypeEnum="step"
+                  modules={modules}
+                  formats={formats}
+                  placeholder="Detailed text about the current steps..."
+                  style={{ 
+                    minHeight: '300px'
+                  }}
+                />
               </div>
             </div>
           </div>
