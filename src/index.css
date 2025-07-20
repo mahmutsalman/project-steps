@@ -66,8 +66,18 @@
 /* Custom Quill Container Styles */
 .ql-container {
   @apply min-h-[400px] rounded-b-lg;
+  position: relative;
+  z-index: 1;
 }
 
 .ql-toolbar {
   @apply rounded-t-lg;
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent Quill editor from capturing clicks outside its intended area */
+.ql-editor {
+  position: relative;
+  z-index: 1;
 }

@@ -71,12 +71,12 @@ const StepModal = ({ step, onClose, onSave }) => {
         </div>
         
         {isDescriptionView ? (
-          <div className="flex flex-col" style={{ height: 'calc(80vh - 200px)' }}>
-            <div className="flex-1">
+          <div className="flex flex-col" style={{ height: 'calc(80vh - 240px)' }}>
+            <div className="flex-1 mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
               </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden" style={{ height: 'calc(100% - 30px)' }}>
+              <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden" style={{ height: 'calc(100% - 30px)', maxHeight: 'calc(80vh - 300px)' }}>
                 <ReactQuill
                   ref={quillRef}
                   theme="snow"
@@ -122,16 +122,16 @@ const StepModal = ({ step, onClose, onSave }) => {
           </div>
         )}
         
-        <div className="mt-6 flex gap-4">
+        <div className="mt-6 flex gap-4 relative z-10">
           <button
             onClick={handleSave}
-            className="flex-1 bg-cyan-500 text-white py-2 px-4 rounded-lg hover:bg-cyan-600 transition-colors"
+            className="flex-1 bg-cyan-500 text-white py-2 px-4 rounded-lg hover:bg-cyan-600 transition-colors cursor-pointer"
           >
             Save
           </button>
           <button
             onClick={onClose}
-            className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+            className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors cursor-pointer"
           >
             Cancel
           </button>
