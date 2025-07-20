@@ -148,3 +148,41 @@ export const deleteStep = async (stepId) => {
     throw error
   }
 }
+
+// Notes CRUD operations
+export const loadNotesByProject = async (projectId) => {
+  try {
+    const notes = await invoke('get_notes_by_project', { projectId: projectId })
+    return notes
+  } catch (error) {
+    console.error('Error loading notes:', error)
+    return []
+  }
+}
+
+export const createNote = async (note) => {
+  try {
+    await invoke('create_note', { note: note })
+  } catch (error) {
+    console.error('Error creating note:', error)
+    throw error
+  }
+}
+
+export const updateNote = async (note) => {
+  try {
+    await invoke('update_note', { note: note })
+  } catch (error) {
+    console.error('Error updating note:', error)
+    throw error
+  }
+}
+
+export const deleteNote = async (noteId) => {
+  try {
+    await invoke('delete_note', { noteId: noteId })
+  } catch (error) {
+    console.error('Error deleting note:', error)
+    throw error
+  }
+}

@@ -26,6 +26,21 @@ pub struct Step {
     pub updated_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Note {
+    pub id: String,
+    #[serde(rename = "projectId")]
+    pub project_id: String,
+    pub title: String,
+    pub content: String,
+    #[serde(rename = "plainText")]
+    pub plain_text: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: String,
+}
+
 pub struct Database {
     conn: Connection,
 }
@@ -49,7 +64,7 @@ impl Database {
         if is_new_db {
             println!("Creating new database at: {}", db_path.display());
             Self::create_initial_schema(&conn)?;
-            Self::set_schema_version(&conn, 2)?;
+            Self::set_schema_version(&conn, 3)?;
         } else {
             println!("Using existing database at: {}", db_path.display());
             Self::apply_migrations(&conn, current_version)?;
@@ -103,13 +118,27 @@ impl Database {
             )",
             [],
         )?;
+
+        conn.execute(
+            "CREATE TABLE notes (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                plain_text TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+            )",
+            [],
+        )?;
         
         println!("Initial database schema created successfully");
         Ok(())
     }
     
     fn apply_migrations(conn: &Connection, current_version: i32) -> Result<()> {
-        let latest_version = 2; // Update this when adding new migrations
+        let latest_version = 3; // Update this when adding new migrations
         
         if current_version < latest_version {
             println!("Applying database migrations from version {} to {}", current_version, latest_version);
@@ -117,6 +146,23 @@ impl Database {
             if current_version < 2 {
                 conn.execute("ALTER TABLE projects ADD COLUMN current_step_id TEXT", [])?;
                 Self::set_schema_version(conn, 2)?;
+            }
+            
+            if current_version < 3 {
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS notes (
+                        id TEXT PRIMARY KEY,
+                        project_id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        plain_text TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+                    )",
+                    [],
+                )?;
+                Self::set_schema_version(conn, 3)?;
             }
             
             println!("Database migrations completed");
@@ -292,6 +338,68 @@ impl Database {
         self.conn.execute(
             "DELETE FROM steps WHERE id = ?1",
             [step_id],
+        )?;
+        Ok(())
+    }
+
+    // Notes CRUD operations
+    pub fn get_notes_by_project(&self, project_id: &str) -> Result<Vec<Note>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, project_id, title, content, plain_text, created_at, updated_at 
+             FROM notes WHERE project_id = ?1 ORDER BY created_at DESC"
+        )?;
+        
+        let notes = stmt.query_map([project_id], |row| {
+            Ok(Note {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                title: row.get(2)?,
+                content: row.get(3)?,
+                plain_text: row.get(4)?,
+                created_at: row.get(5)?,
+                updated_at: row.get(6)?,
+            })
+        })?;
+
+        notes.collect()
+    }
+
+    pub fn create_note(&self, note: &Note) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO notes (id, project_id, title, content, plain_text, created_at, updated_at) 
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            [
+                &note.id,
+                &note.project_id,
+                &note.title,
+                &note.content,
+                &note.plain_text,
+                &note.created_at,
+                &note.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_note(&self, note: &Note) -> Result<()> {
+        self.conn.execute(
+            "UPDATE notes SET title = ?1, content = ?2, plain_text = ?3, updated_at = ?4 
+             WHERE id = ?5",
+            [
+                &note.title,
+                &note.content,
+                &note.plain_text,
+                &note.updated_at,
+                &note.id,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_note(&self, note_id: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM notes WHERE id = ?1",
+            [note_id],
         )?;
         Ok(())
     }

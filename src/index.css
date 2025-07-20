@@ -1,3 +1,73 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Quill Editor Dark Mode Styles */
+.dark .quill {
+  @apply bg-gray-900 text-white;
+}
+
+.dark .ql-toolbar {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .ql-toolbar button {
+  @apply text-gray-400 hover:text-white;
+}
+
+.dark .ql-toolbar button.ql-active {
+  @apply text-blue-400;
+}
+
+.dark .ql-toolbar .ql-stroke {
+  @apply stroke-gray-400;
+}
+
+.dark .ql-toolbar .ql-fill {
+  @apply fill-gray-400;
+}
+
+.dark .ql-toolbar button:hover .ql-stroke {
+  @apply stroke-white;
+}
+
+.dark .ql-toolbar button:hover .ql-fill {
+  @apply fill-white;
+}
+
+.dark .ql-toolbar button.ql-active .ql-stroke {
+  @apply stroke-blue-400;
+}
+
+.dark .ql-toolbar button.ql-active .ql-fill {
+  @apply fill-blue-400;
+}
+
+.dark .ql-container {
+  @apply bg-gray-900 border-gray-700;
+}
+
+.dark .ql-editor {
+  @apply text-white;
+}
+
+.dark .ql-editor.ql-blank::before {
+  @apply text-gray-500;
+}
+
+.dark .ql-snow .ql-tooltip {
+  @apply bg-gray-800 text-white shadow-xl;
+}
+
+.dark .ql-snow .ql-tooltip input[type=text] {
+  @apply bg-gray-700 text-white border-gray-600;
+}
+
+/* Custom Quill Container Styles */
+.ql-container {
+  @apply min-h-[400px] rounded-b-lg;
+}
+
+.ql-toolbar {
+  @apply rounded-t-lg;
+}

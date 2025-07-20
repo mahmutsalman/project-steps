@@ -2,7 +2,7 @@
 
 mod database;
 
-use database::{Database, Project, Step};
+use database::{Database, Project, Step, Note};
 use std::sync::Mutex;
 use tauri::{Manager, State};
 
@@ -76,6 +76,33 @@ fn delete_step(step_id: String, state: State<AppState>) -> Result<(), String> {
     db.delete_step(&step_id).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+#[allow(non_snake_case)]
+fn get_notes_by_project(projectId: String, state: State<AppState>) -> Result<Vec<Note>, String> {
+    println!("get_notes_by_project called with projectId: {}", projectId);
+    let db = state.db.lock().unwrap();
+    db.get_notes_by_project(&projectId).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn create_note(note: Note, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.create_note(&note).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_note(note: Note, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.update_note(&note).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+fn delete_note(noteId: String, state: State<AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db.delete_note(&noteId).map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -110,7 +137,11 @@ fn main() {
             update_step,
             update_steps_batch,
             update_project_current_step,
-            delete_step
+            delete_step,
+            get_notes_by_project,
+            create_note,
+            update_note,
+            delete_note
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
