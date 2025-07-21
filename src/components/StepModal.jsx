@@ -72,7 +72,7 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
     }
   }, [])
 
-  // Check for image attachments periodically
+  // Check for image attachments from QuillWithImages
   useEffect(() => {
     const checkImages = () => {
       if (quillRef.current?.getImageAttachments) {
@@ -81,11 +81,8 @@ const StepModal = ({ step, onClose, onSave, onAutoSave }) => {
       }
     }
 
-    // Check initially and then periodically
-    const interval = setInterval(checkImages, 1000)
+    // Check only when description changes
     checkImages()
-
-    return () => clearInterval(interval)
   }, [description])
 
   // Disable body scroll when modal is open

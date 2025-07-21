@@ -180,24 +180,15 @@ const QuillWithImages = React.forwardRef(({
       }
     }
 
-    // Check initially
-    checkCompactMode()
+    // Check initially with a small delay to let layout settle
+    const initialTimeout = setTimeout(checkCompactMode, 100)
 
-    // Check on window resize
+    // Check on window resize only
     window.addEventListener('resize', checkCompactMode)
-    
-    // Use ResizeObserver if available to monitor container size changes
-    let resizeObserver
-    if (containerRef.current && window.ResizeObserver) {
-      resizeObserver = new ResizeObserver(checkCompactMode)
-      resizeObserver.observe(containerRef.current)
-    }
 
     return () => {
+      clearTimeout(initialTimeout)
       window.removeEventListener('resize', checkCompactMode)
-      if (resizeObserver) {
-        resizeObserver.disconnect()
-      }
     }
   }, [])
 

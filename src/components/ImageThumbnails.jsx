@@ -7,13 +7,22 @@ const ImageThumbnails = ({ attachments, onDelete, compact = false }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(null)
 
   useEffect(() => {
-    loadThumbnails()
+    loadNewThumbnails()
   }, [attachments])
 
-  const loadThumbnails = async () => {
-    const newThumbnails = {}
+  const loadNewThumbnails = async () => {
+    // Only load thumbnails for attachments that don't already have them
+    const attachmentsToLoad = attachments.filter(attachment => 
+      !thumbnails[attachment.id]
+    )
     
-    for (const attachment of attachments) {
+    if (attachmentsToLoad.length === 0) {
+      return
+    }
+    
+    const newThumbnails = { ...thumbnails }
+    
+    for (const attachment of attachmentsToLoad) {
       try {
         const thumbnail = await createImageThumbnail(attachment)
         newThumbnails[attachment.id] = thumbnail
