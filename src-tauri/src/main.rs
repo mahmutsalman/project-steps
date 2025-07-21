@@ -75,9 +75,10 @@ fn update_project_current_step(project_id: String, step_id: Option<String>, stat
 }
 
 #[tauri::command]
-fn delete_step(step_id: String, state: State<AppState>) -> Result<(), String> {
+#[allow(non_snake_case)]
+fn delete_step(stepId: String, state: State<AppState>) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db.delete_step(&step_id).map_err(|e| e.to_string())
+    db.delete_step(&stepId).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

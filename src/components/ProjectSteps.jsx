@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import StepModal from './StepModal'
 import NoteModal from './NoteModal'
 import ContextMenu from './ContextMenu'
+import ConfirmationModal from './ConfirmationModal'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
-import { createStep, updateStep, updateProjectCurrentStep, deleteStep, getImportantNote, setImportantNote, createNote, updateNote } from '../utils/storage'
+import { createStep, updateStep, updateProjectCurrentStep, deleteStep, getImportantNote, setImportantNote, createNote, updateNote, loadSteps } from '../utils/storage'
 import { undoRedoSystem, DeleteStepCommand } from '../utils/undoRedoSystem'
 
 const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdateProject, onNavigateToNotes }) => {
@@ -15,6 +16,8 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [importantNote, setImportantNoteState] = useState(null)
   const [lastOpenedStepId, setLastOpenedStepId] = useState(null)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [stepToDelete, setStepToDelete] = useState(null)
 
   // Functions to manage last opened step in localStorage
   const getLastOpenedStepId = (projectId) => {
@@ -178,9 +181,17 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     }
   }
 
-  const handleDeleteStep = async (step) => {
+  const handleDeleteStepRequest = (step) => {
+    setStepToDelete(step)
+    setShowDeleteConfirmation(true)
+    setContextMenu(null) // Close context menu
+  }
+
+  const handleConfirmDeleteStep = async () => {
+    if (!stepToDelete) return
+
     const deleteCommand = new DeleteStepCommand(
-      step,
+      stepToDelete,
       project.id,
       deleteStep,
       createStep
@@ -189,15 +200,24 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
     try {
       await undoRedoSystem.executeCommand(deleteCommand)
       
-      const updatedLocalSteps = localSteps.filter(s => s.id !== step.id)
-      setLocalSteps(updatedLocalSteps)
+      // Reload steps from database to ensure consistency
+      const freshSteps = await loadSteps()
+      setLocalSteps(freshSteps.filter(s => s.projectId === project.id))
+      onUpdateSteps(freshSteps)
       
-      const otherSteps = allSteps.filter(s => s.projectId !== project.id)
-      onUpdateSteps([...otherSteps, ...updatedLocalSteps])
+      setShowDeleteConfirmation(false)
+      setStepToDelete(null)
     } catch (error) {
       console.error('Failed to delete step:', error)
       alert('Failed to delete step')
+      setShowDeleteConfirmation(false)
+      setStepToDelete(null)
     }
+  }
+
+  const handleCancelDeleteStep = () => {
+    setShowDeleteConfirmation(false)
+    setStepToDelete(null)
   }
 
   const handleUndo = async () => {
@@ -508,7 +528,7 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
           items={[
             {
               label: 'Delete Step',
-              onClick: () => handleDeleteStep(contextMenu.step),
+              onClick: () => handleDeleteStepRequest(contextMenu.step),
               danger: true
             }
           ]}
@@ -528,6 +548,17 @@ const ProjectSteps = ({ project, steps, onBack, onUpdateSteps, allSteps, onUpdat
           ]}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirmation}
+        onClose={handleCancelDeleteStep}
+        onConfirm={handleConfirmDeleteStep}
+        title="Delete Step"
+        message={`Are you sure you want to delete "${stepToDelete?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger={true}
+      />
     </div>
   )
 }
